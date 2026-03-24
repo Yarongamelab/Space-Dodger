@@ -3,8 +3,10 @@ import 'package:flame/game.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../di/data_layer.dart';
 import '../services/game_data_service.dart';
+import '../services/audio_service.dart';
 import '../game/space_dodger_game.dart';
 import '../game/level_manager.dart';
+import '../widgets/space_logo_widget.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -21,12 +23,18 @@ class _GameScreenState extends State<GameScreen> {
   bool _isAdLoaded = false;
   bool _adLoadFailed = false;
   late GameDataService _gameDataService;
+  late AudioService _audioService;
+  bool _soundEnabled = true;
+  bool _musicEnabled = true;
 
   @override
   void initState() {
     super.initState();
     game = SpaceDodgerGame();
     _gameDataService = DataLayer.gameDataService;
+    _audioService = AudioService();
+    _soundEnabled = _audioService.soundEnabled;
+    _musicEnabled = _audioService.musicEnabled;
     _loadBannerAd();
     _loadInterstitialAd();
   }
@@ -378,24 +386,78 @@ class _GameScreenState extends State<GameScreen> {
     return Positioned(
       top: 50,
       right: 20,
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            isPaused = true;
-            game.pauseEngine();
-            game.overlays.add('pause');
-          });
-        },
-        child: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A3A).withOpacity(0.8),
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFF00D4FF), width: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Sound toggle button
+          GestureDetector(
+            onTap: () async {
+              await _audioService.toggleSound();
+              setState(() {
+                _soundEnabled = _audioService.soundEnabled;
+              });
+            },
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A3A).withOpacity(0.8),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF00D4FF), width: 2),
+              ),
+              child: Icon(
+                _soundEnabled ? Icons.volume_up : Icons.volume_off,
+                color: _soundEnabled ? Colors.white : Colors.grey,
+                size: 28,
+              ),
+            ),
           ),
-          child: const Icon(Icons.pause, color: Colors.white, size: 28),
-        ),
+          const SizedBox(width: 10),
+          // Music toggle button
+          GestureDetector(
+            onTap: () async {
+              await _audioService.toggleMusic();
+              setState(() {
+                _musicEnabled = _audioService.musicEnabled;
+              });
+            },
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A3A).withOpacity(0.8),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF00D4FF), width: 2),
+              ),
+              child: Icon(
+                _musicEnabled ? Icons.music_note : Icons.music_off,
+                color: _musicEnabled ? Colors.white : Colors.grey,
+                size: 28,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Pause button
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                isPaused = true;
+                game.pauseEngine();
+                game.overlays.add('pause');
+              });
+            },
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A3A).withOpacity(0.8),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF00D4FF), width: 2),
+              ),
+              child: const Icon(Icons.pause, color: Colors.white, size: 28),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -414,6 +476,8 @@ class _GameScreenState extends State<GameScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SpaceLogoWidget(size: 80),
+              const SizedBox(height: 20),
               const Text(
                 'PAUSED',
                 style: TextStyle(
@@ -423,7 +487,39 @@ class _GameScreenState extends State<GameScreen> {
                   letterSpacing: 5,
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
+
+              // Sound settings
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildSoundToggle(
+                    icon: _soundEnabled ? Icons.volume_up : Icons.volume_off,
+                    isEnabled: _soundEnabled,
+                    label: 'SFX',
+                    onTap: () async {
+                      await _audioService.toggleSound();
+                      setState(() {
+                        _soundEnabled = _audioService.soundEnabled;
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 20),
+                  _buildSoundToggle(
+                    icon: _musicEnabled ? Icons.music_note : Icons.music_off,
+                    isEnabled: _musicEnabled,
+                    label: 'MUSIC',
+                    onTap: () async {
+                      await _audioService.toggleMusic();
+                      setState(() {
+                        _musicEnabled = _audioService.musicEnabled;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+
               _buildPauseButtonAction(
                 text: 'RESUME',
                 icon: Icons.play_arrow,
@@ -500,6 +596,49 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  Widget _buildSoundToggle({
+    required IconData icon,
+    required bool isEnabled,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 100,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isEnabled
+                ? [const Color(0xFF00D4FF), const Color(0xFF00D4FF).withOpacity(0.7)]
+                : [const Color(0xFF444444), const Color(0xFF444444).withOpacity(0.7)],
+          ),
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isEnabled ? Colors.white : Colors.grey,
+              size: 28,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isEnabled ? Colors.white : Colors.grey,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildGameOverOverlay() {
     return Container(
       color: Colors.black.withOpacity(0.85),
@@ -529,10 +668,12 @@ class _GameScreenState extends State<GameScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SpaceLogoWidget(size: 100),
+              const SizedBox(height: 20),
               const Icon(
                 Icons.error_outline,
                 color: Color(0xFFFF4444),
-                size: 60,
+                size: 50,
               ),
               const SizedBox(height: 20),
               const Text(
@@ -655,10 +796,12 @@ class _GameScreenState extends State<GameScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SpaceLogoWidget(size: 100),
+              const SizedBox(height: 20),
               Icon(
                 Icons.celebration,
                 color: Color(tierColor),
-                size: 60,
+                size: 50,
               ),
               const SizedBox(height: 20),
               const Text(

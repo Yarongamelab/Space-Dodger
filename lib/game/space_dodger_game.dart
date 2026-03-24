@@ -5,6 +5,7 @@ import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import '../di/data_layer.dart';
 import '../services/game_data_service.dart';
+import '../services/audio_service.dart';
 import 'player.dart';
 import 'asteroid.dart';
 import 'powerup.dart';
@@ -21,11 +22,12 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
   double powerUpSpawnTimer = 0;
   bool isScoreBoosted = false;
   double scoreBoostTime = 0;
-  
+
   bool isLevelTransition = false;
   bool _isInitialized = false;
 
   late GameDataService _gameDataService;
+  late AudioService _audioService;
 
   final Random random = Random();
 
@@ -38,7 +40,11 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
 
     // Get the game data service
     _gameDataService = DataLayer.gameDataService;
-    
+    _audioService = AudioService();
+
+    // Start background music
+    _audioService.startBackgroundMusic();
+
     // Initialize level manager
     levelManager = LevelManager();
     levelManager!.startLevel(1);
@@ -56,7 +62,7 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
 
     player = Player();
     add(player!);
-    
+
     // Set initial target position
     if (size.x > 0) {
       player!.targetPosition = Vector2(size.x / 2, size.y - 100);
@@ -129,7 +135,10 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
 
     isLevelTransition = true;
     overlays.add('levelComplete');
-    
+
+    // Play level complete sound
+    _audioService.playLevelCompleteSound();
+
     // Auto-advance to next level after a short delay
     add(TimerComponent(
       period: 2.0,
@@ -139,7 +148,7 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
           levelManager!.completeLevel();
           isLevelTransition = false;
           overlays.remove('levelComplete');
-          
+
           // Reset player position and apply level-specific settings
           if (player != null) {
             player!.position = Vector2(size.x / 2, size.y - 100);
@@ -166,9 +175,14 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
 
     int sizeCategory = 0;
     final rand = random.nextDouble();
-    if (rand > levelManager!.largeAsteroidProbability) {
+    
+    // Fixed logic: rand < probability for correct distribution
+    final largeProb = levelManager!.largeAsteroidProbability;
+    final mediumProb = levelManager!.mediumAsteroidProbability;
+    
+    if (rand < largeProb) {
       sizeCategory = 2; // Large
-    } else if (rand > levelManager!.mediumAsteroidProbability) {
+    } else if (rand < (largeProb + mediumProb)) {
       sizeCategory = 1; // Medium
     }
 
@@ -200,11 +214,9 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
       case PowerUpType.scoreBoost:
         isScoreBoosted = true;
         scoreBoostTime = 10.0;
-        break;
+        break; // Fixed missing break
       case PowerUpType.speedBoost:
-        // Now that movement is interpolated, speed is relevant again!
         player!.speed = min(800, player!.speed + 150);
-        // Also give a temporary score boost as a bonus
         isScoreBoosted = true;
         scoreBoostTime += 5.0;
         break;
@@ -218,19 +230,26 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
         player!.targetPosition = player!.position.clone();
       }
       player!.targetPosition!.add(event.localDelta);
+      
+      // Clamp targetPosition to screen bounds to prevent ship sticking
+      player!.targetPosition!.x = player!.targetPosition!.x.clamp(25, size.x - 25);
+      player!.targetPosition!.y = player!.targetPosition!.y.clamp(30, size.y - 30);
     }
   }
 
   void gameOver() {
     isGameOver = true;
     pauseEngine();
-    
+
+    // Play game over sound
+    _audioService.playGameOverSound();
+
     // Final score sync
     _gameDataService.updateScore(score.toInt());
     if (levelManager != null) {
       levelManager!.scoreNotifier.value = score.toInt();
     }
-    
+
     // End game and save stats
     _gameDataService.endGame();
     overlays.add('gameOver');

@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart';
+import '../services/audio_service.dart';
 import 'asteroid.dart';
 import 'powerup.dart';
 import 'space_dodger_game.dart';
@@ -13,12 +14,15 @@ class Player extends SpriteComponent with HasGameRef, CollisionCallbacks {
   bool isInvincible = false;
   double shieldTime = 0;
   Vector2? targetPosition;
+  late AudioService _audioService;
 
   Player() : super(size: Vector2(50, 60), anchor: Anchor.center);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+
+    _audioService = AudioService();
 
     // Create player sprite programmatically (spaceship shape)
     final pictureRecorder = ui.PictureRecorder();
@@ -137,6 +141,9 @@ class Player extends SpriteComponent with HasGameRef, CollisionCallbacks {
     super.onCollision(intersectionPoints, other);
 
     if (!isInvincible && other is Asteroid) {
+      // Play collision sound
+      _audioService.playCollisionSound();
+
       lives--;
       isInvincible = true;
       shieldTime = 2.0;
@@ -144,6 +151,10 @@ class Player extends SpriteComponent with HasGameRef, CollisionCallbacks {
       // Collect power-up
       (gameRef as SpaceDodgerGame).applyPowerUp(other.type);
       (gameRef as SpaceDodgerGame).recordPowerUpCollected();
+
+      // Play power-up sound
+      _audioService.playPowerUpSound();
+
       other.removeFromParent();
     }
   }

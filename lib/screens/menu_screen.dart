@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../di/data_layer.dart';
 import '../services/game_data_service.dart';
 import 'game_screen.dart';
+import '../widgets/space_logo_widget.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -124,13 +125,8 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                           ),
                           const SizedBox(height: 30),
 
-                          // Spaceship icon
-                          SizedBox(
-                            height: 70,
-                            child: CustomPaint(
-                              painter: SpaceshipPainter(),
-                            ),
-                          ),
+                          // Spaceship logo
+                          const SpaceLogoWidget(size: 100),
                           const SizedBox(height: 30),
 
                           // High Score

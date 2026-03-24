@@ -3,12 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'di/data_layer.dart';
 import 'screens/menu_screen.dart';
+import 'services/audio_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize the data layer first (critical for app to work)
   await DataLayer.initialize();
+
+  // Initialize audio service
+  await AudioService().initialize();
 
   // Initialize Google Mobile Ads (non-blocking - continue even if it fails)
   try {
