@@ -11,7 +11,7 @@ import 'asteroid.dart';
 import 'powerup.dart';
 import 'level_manager.dart';
 
-class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetection {
+class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetection, WidgetsBindingObserver {
   Player? player;
   LevelManager? levelManager;
 
@@ -37,6 +37,7 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    WidgetsBinding.instance.addObserver(this);
 
     // Get the game data service
     _gameDataService = DataLayer.gameDataService;
@@ -75,7 +76,30 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
   }
 
   @override
+  void onRemove() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.onRemove();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (!isGameOver && !isPaused) {
+        pauseEngine();
+        _audioService.pauseBackgroundMusic();
+        overlays.add('pause');
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // We don't automatically resume the engine here to let the user resume via the overlay
+      // but we might want to refresh state or ensure audio is ready
+    }
+  }
+
+  bool get isPaused => overlays.isActive('pause');
+
+  @override
   void update(double dt) {
+    if (dt > 0.1) dt = 0.1;
     super.update(dt);
 
     if (!_isInitialized || isGameOver || isLevelTransition || player == null || levelManager == null) return;
@@ -241,7 +265,8 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
     isGameOver = true;
     pauseEngine();
 
-    // Play game over sound
+    // Pause music and play game over sound
+    _audioService.pauseBackgroundMusic();
     _audioService.playGameOverSound();
 
     // Final score sync
@@ -298,6 +323,7 @@ class SpaceDodgerGame extends FlameGame with DragCallbacks, HasCollisionDetectio
 
     // Start new game session
     _gameDataService.startNewGame();
+    _audioService.resumeBackgroundMusic();
   }
 }
 

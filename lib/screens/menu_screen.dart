@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../di/data_layer.dart';
 import '../services/game_data_service.dart';
+import '../services/audio_service.dart';
 import 'game_screen.dart';
 import '../widgets/space_logo_widget.dart';
 
@@ -193,6 +194,13 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                             color: const Color(0xFFFFD700),
                             onTap: () => _showInstructions(),
                           ),
+                          const SizedBox(height: 15),
+                          _buildMenuButton(
+                            text: 'SETTINGS',
+                            icon: Icons.settings,
+                            color: const Color(0xFF00FFCC),
+                            onTap: () => _showSettings(),
+                          ),
                         ],
                       ),
                     ),
@@ -300,6 +308,103 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showSettings() {
+    final audioService = AudioService();
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            backgroundColor: const Color(0xFF1A1A3A),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: Color(0xFF00FFCC), width: 2),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(25),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'SETTINGS',
+                    style: TextStyle(
+                      color: Color(0xFF00FFCC),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  Row(
+                    children: [
+                      const Icon(Icons.music_note, color: Colors.white),
+                      const SizedBox(width: 10),
+                      const Text('Music', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      Expanded(
+                        child: Slider(
+                          value: audioService.musicVolume,
+                          activeColor: const Color(0xFF00FFCC),
+                          inactiveColor: Colors.white24,
+                          onChanged: (val) {
+                            setState(() => audioService.setMusicVolume(val, save: false));
+                          },
+                          onChangeEnd: (val) {
+                            audioService.setMusicVolume(val, save: true);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(Icons.volume_up, color: Colors.white),
+                      const SizedBox(width: 10),
+                      const Text('Sound', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      Expanded(
+                        child: Slider(
+                          value: audioService.soundVolume,
+                          activeColor: const Color(0xFF00FFCC),
+                          inactiveColor: Colors.white24,
+                          onChanged: (val) {
+                            setState(() => audioService.setSoundVolume(val, save: false));
+                          },
+                          onChangeEnd: (val) {
+                            audioService.setSoundVolume(val, save: true);
+                            audioService.playSound('powerup.wav'); // Test sound
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 25),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00FFCC),
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'CLOSE',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

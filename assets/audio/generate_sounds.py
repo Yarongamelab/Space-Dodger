@@ -123,40 +123,91 @@ def generate_level_complete_sound():
             wav_file.writeframes(packed_value)
 
 def generate_background_music():
-    """Generate simple looping ambient background music"""
-    n_samples = int(SAMPLE_RATE * 8)  # 8 seconds loop
+    """Generate upbeat, happy 8-bit chip-tune background music"""
+    n_samples = int(SAMPLE_RATE * 6.4)  # 6.4 seconds loop
     
     with wave.open('background_music.wav', 'w') as wav_file:
         wav_file.setnchannels(1)
         wav_file.setsampwidth(2)
         wav_file.setframerate(SAMPLE_RATE)
         
-        # Ambient drone with subtle modulation
-        # Base: A2 (110Hz), E3 (164.81Hz), A3 (220Hz)
-        base_freqs = [110.0, 164.81, 220.0]
-        base_volumes = [0.15, 0.1, 0.1]
+        # Happy fast melody (C major pentatonic-ish)
+        # Sequence of notes and their durations (1 = quarter note, 0.5 = eighth note)
+        # BPM = 150 -> 1 beat = 0.4s
+        beat_dur = 0.4
+        
+        melody = [
+            (523.25, 0.5), (659.25, 0.5), (783.99, 1.0), (1046.50, 0.5), (783.99, 1.5),
+            (659.25, 0.5), (523.25, 0.5), (659.25, 0.5), (783.99, 0.5), (1046.50, 2.0),
+            (1046.50, 0.5), (1318.51, 0.5), (1567.98, 1.0), (1046.50, 0.5), (783.99, 1.5),
+            (659.25, 0.5), (783.99, 0.5), (659.25, 0.5), (523.25, 0.5), (392.00, 2.0)
+        ]
+        
+        bassline = [
+            (130.81, 1.0), (196.00, 1.0), (261.63, 1.0), (196.00, 1.0),
+            (130.81, 1.0), (174.61, 1.0), (261.63, 1.0), (174.61, 1.0),
+            (130.81, 1.0), (196.00, 1.0), (261.63, 1.0), (196.00, 1.0),
+            (130.81, 1.0), (164.81, 1.0), (196.00, 1.0), (164.81, 1.0)
+        ]
+        
+        current_melody_idx = 0
+        melody_time_remaining = melody[0][1] * beat_dur
+        
+        current_bass_idx = 0
+        bass_time_remaining = bassline[0][1] * beat_dur
         
         for i in range(n_samples):
-            t = i / SAMPLE_RATE
+            t = 1.0 / SAMPLE_RATE
             
-            # Base drone
-            value = 0.0
-            for freq, vol in zip(base_freqs, base_volumes):
-                value += vol * math.sin(2 * math.pi * freq * t)
+            # Melody (square wave-like via sine harmonics for chippy sound)
+            melody_freq = melody[current_melody_idx][0]
+            melody_vol = 0.25
+            m_val = math.sin(2 * math.pi * melody_freq * (i / SAMPLE_RATE))
+            m_val += 0.3 * math.sin(2 * math.pi * (melody_freq * 3) * (i / SAMPLE_RATE)) # odd harmonic
             
-            # Add subtle high harmonic
-            value += 0.05 * math.sin(2 * math.pi * 440 * t)
+            # Envelope for melody (staccato)
+            note_duration = melody[current_melody_idx][1] * beat_dur
+            note_t = note_duration - melody_time_remaining
+            m_env = 1.0
+            if note_t < 0.01:
+                m_env = note_t / 0.01
+            elif melody_time_remaining < 0.05:
+                m_env = max(0, melody_time_remaining / 0.05)
             
-            # Very subtle modulation to avoid static sound
-            modulation = 0.02 * math.sin(2 * math.pi * 0.25 * t)
-            value += modulation
+            # Bassline (triangle-like)
+            bass_freq = bassline[current_bass_idx][0]
+            bass_vol = 0.35
+            b_val = math.sin(2 * math.pi * bass_freq * (i / SAMPLE_RATE))
+            # Envelope for bass
+            b_note_dur = bassline[current_bass_idx][1] * beat_dur
+            b_note_t = b_note_dur - bass_time_remaining
+            b_env = 1.0
+            if b_note_t < 0.02:
+                b_env = b_note_t / 0.02
+            elif bass_time_remaining < 0.1:
+                b_env = max(0, bass_time_remaining / 0.1)
+                
+            value = (m_val * m_env * melody_vol) + (b_val * b_env * bass_vol)
             
-            # Soft fade in/out for seamless looping
-            loop_fade = math.sin(math.pi * t / 8) ** 0.1
-            value *= loop_fade
-            
+            # Loop fade
+            loop_t = i / SAMPLE_RATE
+            if loop_t < 0.05:
+                value *= loop_t / 0.05
+            elif loop_t > 6.4 - 0.05:
+                value *= (6.4 - loop_t) / 0.05
+                
             packed_value = struct.pack('<h', int(value * 32767))
             wav_file.writeframes(packed_value)
+            
+            melody_time_remaining -= t
+            if melody_time_remaining <= 0 and current_melody_idx < len(melody) - 1:
+                current_melody_idx += 1
+                melody_time_remaining += melody[current_melody_idx][1] * beat_dur
+                
+            bass_time_remaining -= t
+            if bass_time_remaining <= 0 and current_bass_idx < len(bassline) - 1:
+                current_bass_idx += 1
+                bass_time_remaining += bassline[current_bass_idx][1] * beat_dur
 
 if __name__ == '__main__':
     print("Generating sound effects for Space Dodger...")

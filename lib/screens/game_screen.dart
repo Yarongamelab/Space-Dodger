@@ -466,9 +466,11 @@ class _GameScreenState extends State<GameScreen> {
     return Container(
       color: Colors.black.withOpacity(0.8),
       child: Center(
-        child: Container(
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 60),
+          child: Container(
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
             color: const Color(0xFF1A1A3A),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(color: const Color(0xFF00D4FF), width: 3),
@@ -558,6 +560,7 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ),
         ),
+        ),
       ),
     );
   }
@@ -643,9 +646,11 @@ class _GameScreenState extends State<GameScreen> {
     return Container(
       color: Colors.black.withOpacity(0.85),
       child: Center(
-        child: Container(
-          margin: const EdgeInsets.all(30),
-          padding: const EdgeInsets.all(40),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 60),
+          child: Container(
+            margin: const EdgeInsets.all(30),
+            padding: const EdgeInsets.all(40),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
@@ -749,13 +754,15 @@ class _GameScreenState extends State<GameScreen> {
               _buildGameOverButton(
                 text: 'MENU',
                 icon: Icons.home,
-                color: const Color(0xFF808080),
+                color: const Color(0xFFFF4444),
                 onTap: () {
+                  AudioService().resumeBackgroundMusic();
                   Navigator.pop(context);
                 },
               ),
             ],
           ),
+        ),
         ),
       ),
     );
