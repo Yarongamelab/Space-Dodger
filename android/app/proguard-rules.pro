@@ -6,6 +6,10 @@
 -keep class io.flutter.**  { *; }
 -keep class io.flutter.plugins.**  { *; }
 
+## Play Core (Add this to fix R8 errors)
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
+
 ## Flame game engine
 -keep class com.flameengine.** { *; }
 -keep class io.flame.** { *; }

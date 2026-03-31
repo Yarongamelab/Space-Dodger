@@ -222,8 +222,13 @@ class AudioService with WidgetsBindingObserver {
   }
 
   /// Play collision sound
-  void playCollisionSound() {
+  void playCollision() {
     playSound('collision.wav');
+  }
+
+  /// Alias for playCollision for backward compatibility
+  void playCollisionSound() {
+    playCollision();
   }
 
   /// Play power-up collection sound
