@@ -1,0 +1,41 @@
+name: iOS Build (Unsigned)
+
+on:
+  workflow_dispatch: # Allows you to manually trigger the build from GitHub
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    name: Build iOS App
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS (No Codesign)
+        # Builds the iOS app without requiring an Apple Developer Certificate
+        run: flutter build ios --release --no-codesign
+          
+      - name: Create IPA payload
+        # Converts the built .app archive into an installable .ipa file
+        run: |
+          mkdir -p Payload
+          mv build/ios/iphoneos/Runner.app Payload/
+          zip -r SpaceDodger.ipa Payload
+          
+      - name: Upload iOS Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceDodger-iOS-IPA
+          path: SpaceDodger.ipa
